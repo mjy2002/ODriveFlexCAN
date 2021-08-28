@@ -7,10 +7,12 @@
 #define ODRIVE_AXIS_COUNT 2
 #endif
 
+#include <FlexCAN_T4.h>
 
-#ifndef _FLEXCAN_T4_H_
-#error The FlexCAN header must be included above ODriveFlexCAN so that the 'CAN_message_t' type gets defined.
-#endif
+namespace ODrive
+{
+#include "ODrive\Arduino\ODriveArduino\ODriveEnums.h"
+};
 
 //#include "CAN-Helpers\can_helpers.hpp"
 #include "ODrive\Firmware\communication\can\can_helpers.hpp"
@@ -26,45 +28,13 @@
 
 namespace CanbusConverters
 {
-    float buffer_to_float(const uint8_t *buffer)
-    {
-        float y;
-        uint32_t *const py = (uint32_t *)&y;
+    float buffer_to_float(const uint8_t *buffer);
 
-        *py = ((uint32_t)buffer[3] << 24) |
-              ((uint32_t)buffer[2] << 16) |
-              ((uint32_t)buffer[1] << 8) |
-              ((uint32_t)buffer[0] << 0);
+    uint32_t buffer_to_uint32(const uint8_t *buffer);
 
-        return y;
-    }
+    void uint32_to_buffer(uint32_t payload, uint8_t *buffer);
 
-    uint32_t buffer_to_uint32(const uint8_t *buffer)
-    {
-        return uint32_t((buffer[3] << 24) |
-                        (buffer[2] << 16) |
-                        (buffer[1] << 8) |
-                        buffer[0]);
-    }
-
-    void uint32_to_buffer(uint32_t payload, uint8_t *buffer)
-    {
-        buffer[3] = (payload >> 24) & 0xFF;
-        buffer[2] = (payload >> 16) & 0xFF;
-        buffer[1] = (payload >> 8) & 0xFF;
-        buffer[0] = payload & 0xFF;
-    }
-
-    void float_to_buffer(float payload, uint8_t *buffer)
-    {
-        uint8_t *f_byte = reinterpret_cast<uint8_t *>(&payload);
-        memcpy(buffer, f_byte, 4);
-    }
-};
-
-namespace ODrive
-{
-#include "ODrive\Arduino\ODriveArduino\ODriveEnums.h"
+    void float_to_buffer(float payload, uint8_t *buffer);
 };
 
 class ODriveFlexCAN
@@ -116,11 +86,21 @@ private:
     public:
         MessageBase_t(uint32_t node_id, uint32_t message_id)
             : _node_id(node_id),
-                _message_id(message_id){};
+              _message_id(message_id){};
 
     protected:
         const uint32_t _node_id;
         const uint32_t _message_id;
+
+        CAN_message_t pack(const uint8_t* buf) const
+        {
+            CAN_message_t msg;
+            msg.id = GET_CANBUS_ID(_node_id, _message_id);
+            msg.len = 8;
+            std::memcpy(msg.buf, buf, msg.len);
+            msg.flags.remote = is_rtr_message(_message_id);
+            return msg;
+        }
 
         CAN_message_t encode_uint32(uint32_t payload1 = 0, uint32_t payload2 = 0) const
         {
@@ -213,7 +193,10 @@ private:
 
         CAN_message_t operator()(ODrive::AxisState requested_state) const
         {
-            return MessageBase_t::encode_uint32((uint32_t)requested_state);
+            //return MessageBase_t::encode_uint32((uint32_t)requested_state);
+            can_Message_t msg;
+            can_setSignal<uint32_t>(msg, (uint32_t)requested_state, 0, 32, true);
+            return MessageBase_t::pack(msg.buf);
         }
     };
     // class SetAxisStartupConfig_t {};
@@ -224,12 +207,14 @@ private:
         float vel;
         GetEncoderEstimates_t(uint32_t node_id)
             : MessageBase_t(node_id, MessageID_t::GetEncoderEstimates),
-                pos(0),
-                vel(0){};
+              pos(0),
+              vel(0){};
 
         CAN_message_t operator()() const
         {
-            return MessageBase_t::encode_uint32();
+            can_Message_t msg;
+            can_setSignal<uint32_t>(msg, 0, 0, 32, true);
+            return MessageBase_t::pack(msg.buf);
         }
     };
     class GetEncoderCount_t : public MessageBase_t
@@ -255,7 +240,11 @@ private:
 
         CAN_message_t operator()(ODrive::ControlMode control_mode, ODrive::InputMode input_mode) const
         {
-            return MessageBase_t::encode_uint32(control_mode, input_mode);
+            //return MessageBase_t::encode_uint32(control_mode, input_mode);
+            can_Message_t msg;
+            can_setSignal<uint32_t>(msg, (uint32_t)control_mode, 0, 32, true);
+            can_setSignal<uint32_t>(msg, (uint32_t)input_mode, 32, 32, true);
+            return MessageBase_t::pack(msg.buf);
         }
     };
     class SetInputPos_t : public MessageBase_t
@@ -275,10 +264,14 @@ private:
         SetInputVel_t(uint32_t node_id)
             : MessageBase_t(node_id, MessageID_t::SetInputVel){};
 
-        CAN_message_t operator()(float input_vel) const
+        CAN_message_t operator()(float input_vel, float torque_ff = 0) const
         {
             //float ff = 0.0;
-            return MessageBase_t::encode_float(input_vel); //, ff);
+            //return MessageBase_t::encode_float(input_vel); //, ff);
+            can_Message_t msg;
+            can_setSignal<float>(msg, input_vel, 0, 32, true, 1, 0);
+            can_setSignal<float>(msg, torque_ff, 32, 32, true, 1, 0);
+            return MessageBase_t::pack(msg.buf);
         }
     };
     class SetInputTorque_t : public MessageBase_t
@@ -532,6 +525,15 @@ private:
         odrive_message.rtr = flexcan_msg.flags.remote;
         std::memcpy(odrive_message.buf, flexcan_msg.buf, flexcan_msg.len);
         return odrive_message;
+    }
+    static CAN_message_t odrive_to_flexcan(const can_Message_t &odrive_message)
+    {
+        CAN_message_t flexcan_msg;
+        flexcan_msg.id = odrive_message.id;
+        flexcan_msg.len = odrive_message.len;
+        flexcan_msg.flags.remote = odrive_message.rtr;
+        std::memcpy(flexcan_msg.buf, odrive_message.buf, odrive_message.len);
+        return flexcan_msg;
     }
 };
 
