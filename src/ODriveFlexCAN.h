@@ -7,9 +7,13 @@
 #define ODRIVE_AXIS_COUNT 2
 #endif
 
+
 #ifndef _FLEXCAN_T4_H_
 #error The FlexCAN header must be included above ODriveFlexCAN so that the 'CAN_message_t' type gets defined.
 #endif
+
+//#include "CAN-Helpers\can_helpers.hpp"
+#include "ODrive\Firmware\communication\can\can_helpers.hpp"
 
 // Upper 6 bits - Node ID (axis id)
 // Lower 5 bits - Command ID
@@ -106,7 +110,7 @@ private:
                 message_id == MessageID_t::GetIQ ||
                 message_id == MessageID_t::GetSensorlessEstimates;
     };
-
+    
     class MessageBase_t
     {
     public:
@@ -477,11 +481,11 @@ public:
                 //Serial.println(msg_id);
                 if (msg_id == MessageID_t::ODrive_Heartbeat)
                 {
-                    //_nodes[i]->Heartbeat.error = (AxisError)can_getSignal<uint32_t>(msg, 0, 4, true);
-                    //_nodes[i]->Heartbeat.state = (AxisState)can_getSignal<uint32_t>(msg, 4, 4, true);
+                    _nodes[i]->Heartbeat.error = (ODrive::AxisError)can_getSignal<uint32_t>(flexcan_to_odrive(msg), 0, 32, true);
+                    _nodes[i]->Heartbeat.state = (ODrive::AxisState)can_getSignal<uint32_t>(flexcan_to_odrive(msg), 32, 32, true);
 
-                    _nodes[i]->Heartbeat.error = (ODrive::AxisError)CanbusConverters::buffer_to_uint32(msg.buf);
-                    _nodes[i]->Heartbeat.state = (ODrive::AxisState)CanbusConverters::buffer_to_uint32(msg.buf + 4);
+                    //_nodes[i]->Heartbeat.error = (ODrive::AxisError)CanbusConverters::buffer_to_uint32(msg.buf);
+                    //_nodes[i]->Heartbeat.state = (ODrive::AxisState)CanbusConverters::buffer_to_uint32(msg.buf + 4);
                 }
                 if (msg_id == MessageID_t::GetMotorError)
                 {
@@ -497,11 +501,11 @@ public:
                 }
                 if (msg_id == MessageID_t::GetEncoderEstimates)
                 {
-                    //_nodes[i]->GetEncoderEstimates.pos = can_getSignal<float>(msg, 0, 4, true, 1, 0);
-                    //_nodes[i]->GetEncoderEstimates.vel = can_getSignal<float>(msg, 4, 4, true, 1, 0);
-                    
-                    _nodes[i]->GetEncoderEstimates.pos = CanbusConverters::buffer_to_float(msg.buf);
-                    _nodes[i]->GetEncoderEstimates.vel = CanbusConverters::buffer_to_float(msg.buf + 4);
+                    _nodes[i]->GetEncoderEstimates.pos = can_getSignal<float>(flexcan_to_odrive(msg), 0, 32, true, 1, 0);
+                    _nodes[i]->GetEncoderEstimates.vel = can_getSignal<float>(flexcan_to_odrive(msg), 32, 32, true, 1, 0);
+
+                    //_nodes[i]->GetEncoderEstimates.pos = CanbusConverters::buffer_to_float(msg.buf);
+                    //_nodes[i]->GetEncoderEstimates.vel = CanbusConverters::buffer_to_float(msg.buf + 4);
                 }
                 if (msg_id == MessageID_t::GetEncoderCount)
                 {
@@ -518,6 +522,16 @@ public:
                 }
             }
         }
+    }
+private:    
+    static can_Message_t flexcan_to_odrive(const CAN_message_t &flexcan_msg)
+    {
+        can_Message_t odrive_message;
+        odrive_message.id = flexcan_msg.id;
+        odrive_message.len = flexcan_msg.len;
+        odrive_message.rtr = flexcan_msg.flags.remote;
+        std::memcpy(odrive_message.buf, flexcan_msg.buf, flexcan_msg.len);
+        return odrive_message;
     }
 };
 
