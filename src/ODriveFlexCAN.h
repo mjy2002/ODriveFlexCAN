@@ -26,17 +26,6 @@ namespace ODrive
 #define GET_NODE_ID(canbus_id) (canbus_id >> 5)
 #define GET_MSG_ID(canbus_id) (canbus_id & 0x1F)
 
-namespace CanbusConverters
-{
-    float buffer_to_float(const uint8_t *buffer);
-
-    uint32_t buffer_to_uint32(const uint8_t *buffer);
-
-    void uint32_to_buffer(uint32_t payload, uint8_t *buffer);
-
-    void float_to_buffer(float payload, uint8_t *buffer);
-};
-
 class ODriveFlexCAN
 {
 private:
@@ -73,12 +62,13 @@ private:
     static bool is_rtr_message(uint32_t message_id)
     {
         return message_id == MessageID_t::GetMotorError ||
-                message_id == MessageID_t::GetEncoderError ||
-                message_id == MessageID_t::GetSensorlessError ||
-                message_id == MessageID_t::GetEncoderEstimates ||
-                message_id == MessageID_t::GetEncoderCount ||
-                message_id == MessageID_t::GetIQ ||
-                message_id == MessageID_t::GetSensorlessEstimates;
+               message_id == MessageID_t::GetEncoderError ||
+               message_id == MessageID_t::GetSensorlessError ||
+               message_id == MessageID_t::GetEncoderEstimates ||
+               message_id == MessageID_t::GetEncoderCount ||
+               message_id == MessageID_t::GetIQ ||
+               message_id == MessageID_t::GetSensorlessEstimates ||
+               message_id == MessageID_t::GetVbusVoltage;
     };
     
     class MessageBase_t
@@ -88,37 +78,26 @@ private:
             : _node_id(node_id),
               _message_id(message_id){};
 
+        CAN_message_t operator()() const
+        {
+            return MessageBase_t::pack();
+        }
+
     protected:
         const uint32_t _node_id;
         const uint32_t _message_id;
 
-        CAN_message_t pack(const uint8_t* buf) const
+        CAN_message_t pack() const
+        {
+            uint8_t zero[8] = {0};
+            return pack(zero);
+        }
+        CAN_message_t pack(const uint8_t *buf) const
         {
             CAN_message_t msg;
             msg.id = GET_CANBUS_ID(_node_id, _message_id);
             msg.len = 8;
             std::memcpy(msg.buf, buf, msg.len);
-            msg.flags.remote = is_rtr_message(_message_id);
-            return msg;
-        }
-
-        CAN_message_t encode_uint32(uint32_t payload1 = 0, uint32_t payload2 = 0) const
-        {
-            CAN_message_t msg;
-            msg.id = GET_CANBUS_ID(_node_id, _message_id);
-            msg.len = 8;
-            CanbusConverters::uint32_to_buffer(payload1, msg.buf);
-            CanbusConverters::uint32_to_buffer(payload2, msg.buf + 4);
-            msg.flags.remote = is_rtr_message(_message_id);
-            return msg;
-        }
-        CAN_message_t encode_float(float payload1 = 0, float payload2 = 0) const
-        {
-            CAN_message_t msg;
-            msg.id = GET_CANBUS_ID(_node_id, _message_id);
-            msg.len = 8;
-            CanbusConverters::float_to_buffer(payload1, msg.buf);
-            CanbusConverters::float_to_buffer(payload2, msg.buf + 4);
             msg.flags.remote = is_rtr_message(_message_id);
             return msg;
         }
@@ -139,11 +118,6 @@ private:
     public:
         EStop_t(uint32_t node_id)
             : MessageBase_t(node_id, MessageID_t::ODrive_EStop){};
-
-        CAN_message_t operator()() const
-        {
-            return MessageBase_t::encode_uint32();
-        }
     };
     class GetMotorError_t : public MessageBase_t
     {
@@ -152,11 +126,6 @@ private:
         GetMotorError_t(uint32_t node_id)
             : MessageBase_t(node_id, MessageID_t::GetMotorError),
               error(ODrive::MotorError::MOTOR_ERROR_NONE){};
-
-        CAN_message_t operator()() const
-        {
-            return MessageBase_t::encode_uint32();
-        }
     };
     class GetEncoderError_t : public MessageBase_t
     {
@@ -165,11 +134,6 @@ private:
         GetEncoderError_t(uint32_t node_id)
             : MessageBase_t(node_id, MessageID_t::GetEncoderError),
               error(ODrive::EncoderError::ENCODER_ERROR_NONE){};
-
-        CAN_message_t operator()() const
-        {
-            return MessageBase_t::encode_uint32();
-        }
     };
     class GetSensorlessError_t : public MessageBase_t
     {
@@ -178,11 +142,6 @@ private:
         GetSensorlessError_t(uint32_t node_id)
             : MessageBase_t(node_id, MessageID_t::GetSensorlessError),
               error(ODrive::SensorlessEstimatorError::SENSORLESS_ESTIMATOR_ERROR_NONE){};
-
-        CAN_message_t operator()() const
-        {
-            return MessageBase_t::encode_uint32();
-        }
     };
     // class SetAxisNodeID_t {};
     class SetAxisRequestedState_t : public MessageBase_t
@@ -193,7 +152,6 @@ private:
 
         CAN_message_t operator()(ODrive::AxisState requested_state) const
         {
-            //return MessageBase_t::encode_uint32((uint32_t)requested_state);
             can_Message_t msg;
             can_setSignal<uint32_t>(msg, (uint32_t)requested_state, 0, 32, true);
             return MessageBase_t::pack(msg.buf);
@@ -203,34 +161,20 @@ private:
     class GetEncoderEstimates_t : public MessageBase_t
     {
     public:
-        float pos;
-        float vel;
+        float pos, vel;
         GetEncoderEstimates_t(uint32_t node_id)
             : MessageBase_t(node_id, MessageID_t::GetEncoderEstimates),
               pos(0),
               vel(0){};
-
-        CAN_message_t operator()() const
-        {
-            can_Message_t msg;
-            can_setSignal<uint32_t>(msg, 0, 0, 32, true);
-            return MessageBase_t::pack(msg.buf);
-        }
     };
     class GetEncoderCount_t : public MessageBase_t
     {
     public:
-        int32_t shadow_count;
-        int32_t count_cpr;
+        int32_t shadow_count, count_cpr;
         GetEncoderCount_t(uint32_t node_id)
             : MessageBase_t(node_id, MessageID_t::GetEncoderCount),
               shadow_count(0),
               count_cpr(0){};
-
-        CAN_message_t operator()() const
-        {
-            return MessageBase_t::encode_uint32();
-        }
     };
     class SetControllerModes_t : public MessageBase_t
     {
@@ -240,7 +184,6 @@ private:
 
         CAN_message_t operator()(ODrive::ControlMode control_mode, ODrive::InputMode input_mode) const
         {
-            //return MessageBase_t::encode_uint32(control_mode, input_mode);
             can_Message_t msg;
             can_setSignal<uint32_t>(msg, (uint32_t)control_mode, 0, 32, true);
             can_setSignal<uint32_t>(msg, (uint32_t)input_mode, 32, 32, true);
@@ -253,9 +196,13 @@ private:
         SetInputPos_t(uint32_t node_id)
             : MessageBase_t(node_id, MessageID_t::SetInputPos){};
 
-        CAN_message_t operator()(float input_pos, int8_t vel_ff, int8_t torque_ff) const
+        CAN_message_t operator()(float input_pos, int16_t vel_ff = 0, int16_t torque_ff = 0) const
         {
-            return MessageBase_t::encode_float(input_pos, input_pos); // check
+            can_Message_t msg;
+            can_setSignal<float>(msg, input_pos, 0, 32, true, 1, 0);
+            can_setSignal<int16_t>(msg, vel_ff, 32, 16, true, 0.001, 0);
+            can_setSignal<int16_t>(msg, torque_ff, 48, 16, true, 0.001, 0);
+            return MessageBase_t::pack(msg.buf);
         }
     };
     class SetInputVel_t : public MessageBase_t
@@ -266,8 +213,6 @@ private:
 
         CAN_message_t operator()(float input_vel, float torque_ff = 0) const
         {
-            //float ff = 0.0;
-            //return MessageBase_t::encode_float(input_vel); //, ff);
             can_Message_t msg;
             can_setSignal<float>(msg, input_vel, 0, 32, true, 1, 0);
             can_setSignal<float>(msg, torque_ff, 32, 32, true, 1, 0);
@@ -282,8 +227,9 @@ private:
 
         CAN_message_t operator()(float input_torque) const
         {
-            //float ff = 0.0;
-            return MessageBase_t::encode_float(input_torque); //, ff);
+            can_Message_t msg;
+            can_setSignal<float>(msg, input_torque, 0, 32, true, 1, 0);
+            return MessageBase_t::pack(msg.buf);
         }
     };
     class SetLimits_t : public MessageBase_t
@@ -294,7 +240,10 @@ private:
 
         CAN_message_t operator()(float vel_lim, float cur_lim) const
         {
-            return MessageBase_t::encode_float(vel_lim, cur_lim);
+            can_Message_t msg;
+            can_setSignal<float>(msg, vel_lim, 0, 32, true, 1, 0);
+            can_setSignal<float>(msg, cur_lim, 32, 32, true, 1, 0);
+            return MessageBase_t::pack(msg.buf);
         }
     };
     class StartAnticogging_t : public MessageBase_t
@@ -302,53 +251,70 @@ private:
     public:
         StartAnticogging_t(uint32_t node_id)
             : MessageBase_t(node_id, MessageID_t::StartAnticogging){};
+    };
+    class SetTrajVelLimit_t : public MessageBase_t
+    {
+    public:
+        SetTrajVelLimit_t(uint32_t node_id)
+            : MessageBase_t(node_id, MessageID_t::SetTrajVelLimit){};
 
-        CAN_message_t operator()() const
+        CAN_message_t operator()(float traj_vel_lim) const
         {
-            return MessageBase_t::encode_uint32();
+            can_Message_t msg;
+            can_setSignal<float>(msg, traj_vel_lim, 0, 32, true, 1, 0);
+            return MessageBase_t::pack(msg.buf);
         }
     };
-    // class SetTrajVelLimit_t {};
-    // class SetTrajAccelLimits_t {};
-    // class SetTrajIntertia_t {};
+    class SetTrajAccelLimits_t : public MessageBase_t
+    {
+    public:
+        SetTrajAccelLimits_t(uint32_t node_id)
+            : MessageBase_t(node_id, MessageID_t::SetTrajAccelLimits){};
+
+        CAN_message_t operator()(float traj_accel_lim, float traj_decel_lim) const
+        {
+            can_Message_t msg;
+            can_setSignal<float>(msg, traj_accel_lim, 0, 32, true, 1, 0);
+            can_setSignal<float>(msg, traj_decel_lim, 32, 32, true, 1, 0);
+            return MessageBase_t::pack(msg.buf);
+        }
+    };
+    class SetTrajInertia_t : public MessageBase_t
+    {
+    public:
+        SetTrajInertia_t(uint32_t node_id)
+            : MessageBase_t(node_id, MessageID_t::SetTrajInertia){};
+
+        CAN_message_t operator()(float traj_inertia) const
+        {
+            can_Message_t msg;
+            can_setSignal<float>(msg, traj_inertia, 0, 32, true, 1, 0);
+            return MessageBase_t::pack(msg.buf);
+        }
+    };
     class GetIQ_t : public MessageBase_t
     {
     public:
-        float iq;
+        float iq_setpoint, iq_measured;
         GetIQ_t(uint32_t node_id)
             : MessageBase_t(node_id, MessageID_t::GetIQ),
-            iq(0) {};
-
-        CAN_message_t operator()() const
-        {
-            return MessageBase_t::encode_uint32();
-        }
+            iq_setpoint(0),
+            iq_measured(0) {};
     };
     class GetSensorlessEstimates_t : public MessageBase_t
     {
     public:
-        float pos;
-        float vel;
+        float pos, vel;
         GetSensorlessEstimates_t(uint32_t node_id)
             : MessageBase_t(node_id, MessageID_t::GetSensorlessEstimates),
                 pos(0),
                 vel(0){};
-
-        CAN_message_t operator()() const
-        {
-            return MessageBase_t::encode_uint32();
-        }
     };
     class RebootOdrive_t : public MessageBase_t
     {
     public:
         RebootOdrive_t(uint32_t node_id)
             : MessageBase_t(node_id, MessageID_t::RebootODrive){};
-
-        CAN_message_t operator()() const
-        {
-            return MessageBase_t::encode_uint32();
-        }
     };
     class GetVbusVoltage_t : public MessageBase_t
     {
@@ -357,24 +323,26 @@ private:
         GetVbusVoltage_t(uint32_t node_id)
             : MessageBase_t(node_id, MessageID_t::GetVbusVoltage),
                 vbus(0){};
-
-        CAN_message_t operator()() const
-        {
-            return MessageBase_t::encode_uint32();
-        }
     };
     class ClearErrors_t : public MessageBase_t
     {
     public:
         ClearErrors_t(uint32_t node_id)
             : MessageBase_t(node_id, MessageID_t::ClearErrors){};
+    };
+    class SetLinearCount_t : public MessageBase_t
+    {
+    public:
+        SetLinearCount_t(uint32_t node_id)
+            : MessageBase_t(node_id, MessageID_t::SetLinearCount){};
 
-        CAN_message_t operator()() const
+        CAN_message_t operator()(int32_t pos) const
         {
-            return MessageBase_t::encode_uint32();
+            can_Message_t msg;
+            can_setSignal<int32_t>(msg, pos, 0, 32, true);
+            return MessageBase_t::pack(msg.buf);
         }
     };
-    // class SetLinearCount_t {};
 
 private:
     class ODriveNode_t
@@ -398,15 +366,15 @@ private:
               SetInputTorque(node_id),
               SetLimits(node_id),
               StartAnticogging(node_id),
-              // SetTrajVelLimit
-              // SetTrajAccelLimits
-              // SetTrajIntertia
+              SetTrajVelLimit(node_id),
+              SetTrajAccelLimits(node_id),
+              SetTrajInertia(node_id),
               GetIQ(node_id),
               GetSensorlessEstimates(node_id),
               RebootOdrive(node_id),
               GetVbusVoltage(node_id),
-              ClearErrors(node_id)
-              // SetLinearCount
+              ClearErrors(node_id),
+              SetLinearCount(node_id)
 
               {};
 
@@ -433,15 +401,15 @@ private:
         SetInputTorque_t SetInputTorque;
         SetLimits_t SetLimits;
         StartAnticogging_t StartAnticogging;
-        // SetTrajVelLimit
-        // SetTrajAccelLimits
-        // SetTrajIntertia
+        SetTrajVelLimit_t SetTrajVelLimit;
+        SetTrajAccelLimits_t SetTrajAccelLimits;
+        SetTrajInertia_t SetTrajInertia;
         GetIQ_t GetIQ;
         GetSensorlessEstimates_t GetSensorlessEstimates;
         RebootOdrive_t RebootOdrive;
         GetVbusVoltage_t GetVbusVoltage;
         ClearErrors_t ClearErrors;
-        // SetLinearCount
+        SetLinearCount_t SetLinearCount;
     };
     ODriveNode_t *_nodes[ODRIVE_AXIS_COUNT];
 
@@ -470,48 +438,51 @@ public:
         {
             if (_nodes[i]->getNodeId() == node_id)
             {
-                //Serial.print("decode ");
-                //Serial.println(msg_id);
+                if (false && (msg_id != MessageID_t::ODrive_Heartbeat))
+                {
+                    Serial.print("decode ");
+                    Serial.println(msg_id);
+                }
                 if (msg_id == MessageID_t::ODrive_Heartbeat)
                 {
                     _nodes[i]->Heartbeat.error = (ODrive::AxisError)can_getSignal<uint32_t>(flexcan_to_odrive(msg), 0, 32, true);
                     _nodes[i]->Heartbeat.state = (ODrive::AxisState)can_getSignal<uint32_t>(flexcan_to_odrive(msg), 32, 32, true);
-
-                    //_nodes[i]->Heartbeat.error = (ODrive::AxisError)CanbusConverters::buffer_to_uint32(msg.buf);
-                    //_nodes[i]->Heartbeat.state = (ODrive::AxisState)CanbusConverters::buffer_to_uint32(msg.buf + 4);
                 }
                 if (msg_id == MessageID_t::GetMotorError)
                 {
-                    _nodes[i]->GetMotorError.error = (ODrive::MotorError)CanbusConverters::buffer_to_uint32(msg.buf);
+                    _nodes[i]->GetMotorError.error = (ODrive::MotorError)can_getSignal<uint32_t>(flexcan_to_odrive(msg), 0, 32, true); // or 64?
                 }
                 if (msg_id == MessageID_t::GetEncoderError)
                 {
-                    _nodes[i]->GetEncoderError.error = (ODrive::EncoderError)CanbusConverters::buffer_to_uint32(msg.buf);
+                    _nodes[i]->GetEncoderError.error = (ODrive::EncoderError)can_getSignal<uint32_t>(flexcan_to_odrive(msg), 0, 32, true);
                 }
                 if (msg_id == MessageID_t::GetSensorlessError)
                 {
-                    _nodes[i]->GetSensorlessError.error = (ODrive::SensorlessEstimatorError)CanbusConverters::buffer_to_uint32(msg.buf);
+                    _nodes[i]->GetSensorlessError.error = (ODrive::SensorlessEstimatorError)can_getSignal<uint32_t>(flexcan_to_odrive(msg), 0, 32, true);
                 }
                 if (msg_id == MessageID_t::GetEncoderEstimates)
                 {
                     _nodes[i]->GetEncoderEstimates.pos = can_getSignal<float>(flexcan_to_odrive(msg), 0, 32, true, 1, 0);
                     _nodes[i]->GetEncoderEstimates.vel = can_getSignal<float>(flexcan_to_odrive(msg), 32, 32, true, 1, 0);
-
-                    //_nodes[i]->GetEncoderEstimates.pos = CanbusConverters::buffer_to_float(msg.buf);
-                    //_nodes[i]->GetEncoderEstimates.vel = CanbusConverters::buffer_to_float(msg.buf + 4);
                 }
                 if (msg_id == MessageID_t::GetEncoderCount)
                 {
-                    _nodes[i]->GetEncoderCount.shadow_count = (int)CanbusConverters::buffer_to_uint32(msg.buf);
-                    _nodes[i]->GetEncoderCount.count_cpr = (int)CanbusConverters::buffer_to_uint32(msg.buf + 4);
+                    _nodes[i]->GetEncoderCount.shadow_count = can_getSignal<int32_t>(flexcan_to_odrive(msg), 0, 32, true, 1, 0);
+                    _nodes[i]->GetEncoderCount.count_cpr = can_getSignal<int32_t>(flexcan_to_odrive(msg), 32, 32, true, 1, 0);
                 }
                 if (msg_id == MessageID_t::GetIQ)
                 {
-                    //_nodes[i]->GetIQ->decode(buf, len);
+                    _nodes[i]->GetIQ.iq_setpoint = can_getSignal<float>(flexcan_to_odrive(msg), 0, 32, true, 1, 0);
+                    _nodes[i]->GetIQ.iq_measured = can_getSignal<float>(flexcan_to_odrive(msg), 32, 32, true, 1, 0);
                 }
                 if (msg_id == MessageID_t::GetSensorlessEstimates)
                 {
-                    //_nodes[i]->GetSensorlessEstimates->decode(buf, len);
+                    _nodes[i]->GetSensorlessEstimates.pos = can_getSignal<float>(flexcan_to_odrive(msg), 0, 32, true, 1, 0);
+                    _nodes[i]->GetSensorlessEstimates.vel = can_getSignal<float>(flexcan_to_odrive(msg), 32, 32, true, 1, 0);
+                }
+                if (msg_id == MessageID_t::GetVbusVoltage)
+                {
+                    _nodes[i]->GetVbusVoltage.vbus = can_getSignal<float>(flexcan_to_odrive(msg), 0, 32, true, 1, 0);
                 }
             }
         }
@@ -526,15 +497,7 @@ private:
         std::memcpy(odrive_message.buf, flexcan_msg.buf, flexcan_msg.len);
         return odrive_message;
     }
-    static CAN_message_t odrive_to_flexcan(const can_Message_t &odrive_message)
-    {
-        CAN_message_t flexcan_msg;
-        flexcan_msg.id = odrive_message.id;
-        flexcan_msg.len = odrive_message.len;
-        flexcan_msg.flags.remote = odrive_message.rtr;
-        std::memcpy(flexcan_msg.buf, odrive_message.buf, odrive_message.len);
-        return flexcan_msg;
-    }
+
 };
 
 

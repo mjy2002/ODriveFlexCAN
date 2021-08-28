@@ -83,11 +83,15 @@ void loop()
     {
         Can0.write(odrive(0).SetLimits(200, 10));
         Can0.write(odrive(0).GetEncoderEstimates());
+        Can0.write(odrive(0).GetVbusVoltage());
 
+        float vbus = odrive(0).GetVbusVoltage.vbus;
         float pos = odrive(0).GetEncoderEstimates.pos;
         float vel = odrive(0).GetEncoderEstimates.vel;
 
-        Serial.print("pos: ");
+        Serial.print("vbus: ");
+        Serial.print(vbus, 2);
+        Serial.print("; pos: ");
         Serial.print(pos, 2);
         Serial.print("; vel: ");
         Serial.println(vel, 2);
