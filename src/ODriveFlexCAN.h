@@ -11,11 +11,11 @@
 
 namespace ODrive
 {
-#include "ODrive\Arduino\ODriveArduino\ODriveEnums.h"
+#include "ODriveEnums.h"
 };
 
 //#include "CAN-Helpers\can_helpers.hpp"
-#include "ODrive\Firmware\communication\can\can_helpers.hpp"
+#include "can_helpers.hpp"
 
 // Upper 6 bits - Node ID (axis id)
 // Lower 5 bits - Command ID
