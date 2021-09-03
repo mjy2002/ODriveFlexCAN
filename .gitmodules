@@ -1,6 +1,0 @@
-[submodule "include/CAN-Helpers"]
-	path = include/CAN-Helpers
-	url = https://github.com/Wetmelon/CAN-Helpers.git
-[submodule "include/ODrive"]
-	path = include/ODrive
-	url = https://github.com/odriverobotics/ODrive.git
