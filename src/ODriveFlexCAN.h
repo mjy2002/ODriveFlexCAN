@@ -9,12 +9,7 @@
 
 #include <FlexCAN_T4.h>
 
-namespace ODrive
-{
 #include "ODriveEnums.h"
-};
-
-//#include "CAN-Helpers\can_helpers.hpp"
 #include "can_helpers.hpp"
 
 // Upper 6 bits - Node ID (axis id)
@@ -25,7 +20,6 @@ namespace ODrive
 #define GET_CANBUS_ID(node_id, msg_id) ((node_id << 5) + msg_id)
 #define GET_NODE_ID(canbus_id) (canbus_id >> 5)
 #define GET_MSG_ID(canbus_id) (canbus_id & 0x1F)
-
 
 class ODriveFlexCAN
 {
