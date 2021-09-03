@@ -18,8 +18,6 @@ void canSniff(const CAN_message_t &msg)
     odrive.filter(msg);
 }
 
-// some changes
-
 void setup()
 {
     Serial.begin(115200);
@@ -63,18 +61,18 @@ void setup()
 
 void loop()
 {
-    //taskManager.runLoop();
+    taskManager.runLoop();
 
     Can0.events();
 
     if (fast_loop.isExpired())
     {
-        //float freq = 0.5;
-        //float signal = 20.0 * sin(freq * 2.0 * PI * (float)millis() / (1000.0));
+        float freq = 0.5;
+        float signal = 1.0 * sin(freq * 2.0 * PI * (float)millis() / (1000.0));
 
         if (odrive(0).Heartbeat.state == ODrive::AXIS_STATE_CLOSED_LOOP_CONTROL)
         {
-            Can0.write(odrive(0).SetInputVel(0));
+            Can0.write(odrive(0).SetInputVel(signal));
         }
 
         fast_loop.repeat();
@@ -105,7 +103,6 @@ void loop()
         Serial.print("; error: ");
         Serial.println(error);
 
-        // Can0.write(odrive.node(0)->SetControllerModes->encode(ODrive::CONTROL_MODE_VELOCITY_CONTROL, ODrive::INPUT_MODE_PASSTHROUGH));
         Can0.write(odrive(0).SetControllerModes(ODrive::CONTROL_MODE_VELOCITY_CONTROL, ODrive::INPUT_MODE_PASSTHROUGH));
 
         slow_loop.repeat();
