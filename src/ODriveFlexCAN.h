@@ -26,6 +26,7 @@ namespace ODrive
 #define GET_NODE_ID(canbus_id) (canbus_id >> 5)
 #define GET_MSG_ID(canbus_id) (canbus_id & 0x1F)
 
+
 class ODriveFlexCAN
 {
 private:
