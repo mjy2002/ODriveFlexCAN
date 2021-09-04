@@ -325,6 +325,7 @@ private:
 
 private:
     ODriveNode_t *_nodes[ODRIVE_MAX_NODES];
+    const uint32_t _node_count;
 
 public:
     const ODriveNode_t &operator()(uint32_t node_id) const;
