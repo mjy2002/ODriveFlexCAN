@@ -12,8 +12,9 @@
 #define GET_MSG_ID(canbus_id) (canbus_id & 0x1F)
 
 ODriveFlexCAN::ODriveFlexCAN(uint32_t *node_ids)
+    : _node_count(sizeof(node_ids) / sizeof(uint32_t))
 {
-    for (uint32_t i = 0; i < ODRIVE_MAX_NODES; i++)
+    for (uint32_t i = 0; i < _node_count; i++)
     {
         _nodes[i] = new ODriveNode_t(node_ids[i]);
     }
@@ -21,11 +22,11 @@ ODriveFlexCAN::ODriveFlexCAN(uint32_t *node_ids)
 
 const ODriveFlexCAN::ODriveNode_t &ODriveFlexCAN::operator()(uint32_t node_id) const
 {
-    for (uint32_t i = 0; i < ODRIVE_MAX_NODES; i++)
+    for (uint32_t i = 0; i < _node_count; i++)
         if (_nodes[i]->getNodeId() == node_id)
             return *_nodes[i];
 
-    return *_nodes[0];
+    return *_nodes[0]; // for compiler warning
 }
 
 can_Message_t flexcan_to_odrive(const CAN_message_t &flexcan_msg)
@@ -43,7 +44,7 @@ void ODriveFlexCAN::filter(const CAN_message_t &msg)
     uint32_t node_id = GET_NODE_ID(msg.id);
     uint32_t msg_id = GET_MSG_ID(msg.id);
 
-    for (uint32_t i = 0; i < ODRIVE_MAX_NODES; i++)
+    for (uint32_t i = 0; i < _node_count; i++)
     {
         if (_nodes[i]->getNodeId() == node_id)
         {
