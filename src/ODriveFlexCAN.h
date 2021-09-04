@@ -11,7 +11,7 @@
 class ODriveFlexCAN
 {
 public:
-    ODriveFlexCAN(uint32_t *node_ids);
+    ODriveFlexCAN(const uint32_t *node_ids, uint32_t node_count);
     void filter(const CAN_message_t &msg);
 
 private:
