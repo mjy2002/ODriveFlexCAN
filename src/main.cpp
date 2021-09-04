@@ -8,7 +8,6 @@ AsyncDelay fast_loop;
 #include <FlexCAN_T4.h>
 FlexCAN_T4<CAN1, RX_SIZE_256, TX_SIZE_16> Can0;
 
-#define ODRIVE_AXIS_COUNT 2
 #include "ODriveFlexCAN.h"
 uint32_t node_ids[] = {0, 1};
 ODriveFlexCAN odrive(node_ids);
