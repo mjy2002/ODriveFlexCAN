@@ -11,8 +11,8 @@
 #define GET_NODE_ID(canbus_id) (canbus_id >> 5)
 #define GET_MSG_ID(canbus_id) (canbus_id & 0x1F)
 
-ODriveFlexCAN::ODriveFlexCAN(uint32_t *node_ids)
-    : _node_count(sizeof(node_ids) / sizeof(uint32_t))
+ODriveFlexCAN::ODriveFlexCAN(const uint32_t *node_ids, uint32_t node_count)
+    : _node_count(node_count)
 {
     for (uint32_t i = 0; i < _node_count; i++)
     {
@@ -22,6 +22,8 @@ ODriveFlexCAN::ODriveFlexCAN(uint32_t *node_ids)
 
 const ODriveFlexCAN::ODriveNode_t &ODriveFlexCAN::operator()(uint32_t node_id) const
 {
+    Serial.print("flexcan() _node_count: ");
+    Serial.println(_node_count);
     for (uint32_t i = 0; i < _node_count; i++)
         if (_nodes[i]->getNodeId() == node_id)
             return *_nodes[i];
