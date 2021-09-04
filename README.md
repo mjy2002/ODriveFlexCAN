@@ -1,6 +1,6 @@
 # ODriveFlexCAN
 
-An implementation of the ODrive Canbus protocol for the Arduino platform.
+An implementation of the ODrive Canbus protocol for the Arduino platform. Uses Wetmelon's https://github.com/Wetmelon/CAN-Helpers with a [small code change](https://github.com/Wetmelon/CAN-Helpers/pull/1) to get it to build under Arduino.
 
 Each Canbus message is wrapped in a functor, which:
 - Uses `operator()` to encode a `CAN_Message_t` (from [FlexCAN_T4](https://github.com/tonton81/FlexCAN_T4 "FlexCAN_T4").h) so that it can be written asynchronously to a Canbus FIFO;
