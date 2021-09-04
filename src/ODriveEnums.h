@@ -6,7 +6,7 @@
 ** To regenerate this file, nagivate to the top level of the ODrive repository and run:
 ** python Firmware/interface_generator_stub.py --definitions Firmware/odrive-interface.yaml --template tools/arduino_enums_template.j2 --output Arduino/ODriveArduino/ODriveEnums.h
 */
-namespace ODrive {
+
 // ODrive.GpioMode
 enum GpioMode {
     GPIO_MODE_DIGITAL                        = 0,
@@ -195,5 +195,5 @@ enum SensorlessEstimatorError {
     SENSORLESS_ESTIMATOR_ERROR_UNSTABLE_GAIN = 0x00000001,
     SENSORLESS_ESTIMATOR_ERROR_UNKNOWN_CURRENT_MEASUREMENT = 0x00000002,
 };
-};
+
 #endif
