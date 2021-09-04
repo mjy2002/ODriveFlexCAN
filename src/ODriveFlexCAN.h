@@ -100,13 +100,13 @@ private:
     class Heartbeat_t : public MessageBase_t
     {
     public:
-        ODrive::AxisError error;
-        ODrive::AxisState state;
+        AxisError error;
+        AxisState state;
 
         Heartbeat_t(uint32_t node_id)
             : MessageBase_t(node_id, MessageID_t::ODrive_Heartbeat),
-              error(ODrive::AxisError::AXIS_ERROR_NONE),
-              state(ODrive::AxisState::AXIS_STATE_UNDEFINED){};
+              error(AxisError::AXIS_ERROR_NONE),
+              state(AxisState::AXIS_STATE_UNDEFINED){};
     };
     class EStop_t : public MessageBase_t
     {
@@ -117,26 +117,26 @@ private:
     class GetMotorError_t : public MessageBase_t
     {
     public:
-        ODrive::MotorError error;
+        MotorError error;
         GetMotorError_t(uint32_t node_id)
             : MessageBase_t(node_id, MessageID_t::GetMotorError),
-              error(ODrive::MotorError::MOTOR_ERROR_NONE){};
+              error(MotorError::MOTOR_ERROR_NONE){};
     };
     class GetEncoderError_t : public MessageBase_t
     {
     public:
-        ODrive::EncoderError error;
+        EncoderError error;
         GetEncoderError_t(uint32_t node_id)
             : MessageBase_t(node_id, MessageID_t::GetEncoderError),
-              error(ODrive::EncoderError::ENCODER_ERROR_NONE){};
+              error(EncoderError::ENCODER_ERROR_NONE){};
     };
     class GetSensorlessError_t : public MessageBase_t
     {
     public:
-        ODrive::SensorlessEstimatorError error;
+        SensorlessEstimatorError error;
         GetSensorlessError_t(uint32_t node_id)
             : MessageBase_t(node_id, MessageID_t::GetSensorlessError),
-              error(ODrive::SensorlessEstimatorError::SENSORLESS_ESTIMATOR_ERROR_NONE){};
+              error(SensorlessEstimatorError::SENSORLESS_ESTIMATOR_ERROR_NONE){};
     };
     // class SetAxisNodeID_t {};
     class SetAxisRequestedState_t : public MessageBase_t
@@ -145,7 +145,7 @@ private:
         SetAxisRequestedState_t(uint32_t node_id)
             : MessageBase_t(node_id, MessageID_t::SetAxisRequestedState){};
 
-        CAN_message_t operator()(ODrive::AxisState requested_state) const
+        CAN_message_t operator()(AxisState requested_state) const
         {
             can_Message_t msg;
             can_setSignal<uint32_t>(msg, (uint32_t)requested_state, 0, 32, true);
@@ -177,7 +177,7 @@ private:
         SetControllerModes_t(uint32_t node_id)
             : MessageBase_t(node_id, MessageID_t::SetControllerModes){};
 
-        CAN_message_t operator()(ODrive::ControlMode control_mode, ODrive::InputMode input_mode) const
+        CAN_message_t operator()(ControlMode control_mode, InputMode input_mode) const
         {
             can_Message_t msg;
             can_setSignal<uint32_t>(msg, (uint32_t)control_mode, 0, 32, true);
@@ -440,20 +440,20 @@ public:
                 }
                 if (msg_id == MessageID_t::ODrive_Heartbeat)
                 {
-                    _nodes[i]->Heartbeat.error = (ODrive::AxisError)can_getSignal<uint32_t>(flexcan_to_odrive(msg), 0, 32, true);
-                    _nodes[i]->Heartbeat.state = (ODrive::AxisState)can_getSignal<uint32_t>(flexcan_to_odrive(msg), 32, 32, true);
+                    _nodes[i]->Heartbeat.error = (AxisError)can_getSignal<uint32_t>(flexcan_to_odrive(msg), 0, 32, true);
+                    _nodes[i]->Heartbeat.state = (AxisState)can_getSignal<uint32_t>(flexcan_to_odrive(msg), 32, 32, true);
                 }
                 if (msg_id == MessageID_t::GetMotorError)
                 {
-                    _nodes[i]->GetMotorError.error = (ODrive::MotorError)can_getSignal<uint32_t>(flexcan_to_odrive(msg), 0, 32, true); // or 64?
+                    _nodes[i]->GetMotorError.error = (MotorError)can_getSignal<uint32_t>(flexcan_to_odrive(msg), 0, 32, true); // or 64?
                 }
                 if (msg_id == MessageID_t::GetEncoderError)
                 {
-                    _nodes[i]->GetEncoderError.error = (ODrive::EncoderError)can_getSignal<uint32_t>(flexcan_to_odrive(msg), 0, 32, true);
+                    _nodes[i]->GetEncoderError.error = (EncoderError)can_getSignal<uint32_t>(flexcan_to_odrive(msg), 0, 32, true);
                 }
                 if (msg_id == MessageID_t::GetSensorlessError)
                 {
-                    _nodes[i]->GetSensorlessError.error = (ODrive::SensorlessEstimatorError)can_getSignal<uint32_t>(flexcan_to_odrive(msg), 0, 32, true);
+                    _nodes[i]->GetSensorlessError.error = (SensorlessEstimatorError)can_getSignal<uint32_t>(flexcan_to_odrive(msg), 0, 32, true);
                 }
                 if (msg_id == MessageID_t::GetEncoderEstimates)
                 {
