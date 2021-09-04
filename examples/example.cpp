@@ -35,23 +35,23 @@ void setup()
         10, []
         {
             Serial.println(" *************************** starting cal ");
-            Can0.write(odrive(0).SetAxisRequestedState(ODrive::AXIS_STATE_MOTOR_CALIBRATION));
+            Can0.write(odrive(0).SetAxisRequestedState(AXIS_STATE_MOTOR_CALIBRATION));
         },
         TIME_SECONDS);
     taskManager.scheduleOnce(
         15, []
-        { Can0.write(odrive(0).SetAxisRequestedState(ODrive::AXIS_STATE_ENCODER_INDEX_SEARCH)); },
+        { Can0.write(odrive(0).SetAxisRequestedState(AXIS_STATE_ENCODER_INDEX_SEARCH)); },
         TIME_SECONDS);
     taskManager.scheduleOnce(
         20, []
-        { Can0.write(odrive(0).SetAxisRequestedState(ODrive::AXIS_STATE_ENCODER_OFFSET_CALIBRATION)); },
+        { Can0.write(odrive(0).SetAxisRequestedState(AXIS_STATE_ENCODER_OFFSET_CALIBRATION)); },
         TIME_SECONDS);
 
     taskManager.scheduleOnce(
         25, []
         {
-            Can0.write(odrive(0).SetAxisRequestedState(ODrive::AXIS_STATE_CLOSED_LOOP_CONTROL));
-            Can0.write(odrive(0).SetControllerModes(ODrive::CONTROL_MODE_VELOCITY_CONTROL, ODrive::INPUT_MODE_PASSTHROUGH));
+            Can0.write(odrive(0).SetAxisRequestedState(AXIS_STATE_CLOSED_LOOP_CONTROL));
+            Can0.write(odrive(0).SetControllerModes(CONTROL_MODE_VELOCITY_CONTROL, INPUT_MODE_PASSTHROUGH));
         },
         TIME_SECONDS);
 
@@ -70,7 +70,7 @@ void loop()
         float freq = 0.5;
         float signal = 1.0 * sin(freq * 2.0 * PI * (float)millis() / (1000.0));
 
-        if (odrive(0).Heartbeat.state == ODrive::AXIS_STATE_CLOSED_LOOP_CONTROL)
+        if (odrive(0).Heartbeat.state == AXIS_STATE_CLOSED_LOOP_CONTROL)
         {
             Can0.write(odrive(0).SetInputVel(signal));
         }
@@ -103,7 +103,7 @@ void loop()
         Serial.print("; error: ");
         Serial.println(error);
 
-        Can0.write(odrive(0).SetControllerModes(ODrive::CONTROL_MODE_VELOCITY_CONTROL, ODrive::INPUT_MODE_PASSTHROUGH));
+        Can0.write(odrive(0).SetControllerModes(CONTROL_MODE_VELOCITY_CONTROL, INPUT_MODE_PASSTHROUGH));
 
         slow_loop.repeat();
     }
