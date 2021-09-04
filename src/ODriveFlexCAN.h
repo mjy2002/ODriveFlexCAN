@@ -3,13 +3,17 @@
 
 #include "Arduino.h"
 
-#include "FlexCAN_T4.h"
+#include "FlexCAN_T4.h" // CAN_message_t
 #include "ODriveEnums.h"
 
 #define ODRIVE_MAX_NODES 100
 
 class ODriveFlexCAN
 {
+public:
+    ODriveFlexCAN(uint32_t *node_ids);
+    void filter(const CAN_message_t &msg);
+
 private:
     enum MessageID_t
     {
@@ -43,14 +47,14 @@ private:
     };
     static bool is_rtr_message(uint32_t message_id)
     {
-        return message_id == MessageID_t::GetMotorError ||
-               message_id == MessageID_t::GetEncoderError ||
-               message_id == MessageID_t::GetSensorlessError ||
-               message_id == MessageID_t::GetEncoderEstimates ||
-               message_id == MessageID_t::GetEncoderCount ||
-               message_id == MessageID_t::GetIQ ||
-               message_id == MessageID_t::GetSensorlessEstimates ||
-               message_id == MessageID_t::GetVbusVoltage;
+        return  message_id == MessageID_t::GetMotorError ||
+                message_id == MessageID_t::GetEncoderError ||
+                message_id == MessageID_t::GetSensorlessError ||
+                message_id == MessageID_t::GetEncoderEstimates ||
+                message_id == MessageID_t::GetEncoderCount ||
+                message_id == MessageID_t::GetIQ ||
+                message_id == MessageID_t::GetSensorlessEstimates ||
+                message_id == MessageID_t::GetVbusVoltage;
     };
     
     class MessageBase_t
@@ -258,6 +262,11 @@ private:
 private:
     class ODriveNode_t
     {
+    private:
+        uint32_t _node_id;
+    public:
+        uint32_t getNodeId() { return _node_id; };
+
     public:
         ODriveNode_t(uint32_t node_id)
             : _node_id(node_id),
@@ -285,17 +294,8 @@ private:
               RebootOdrive(node_id),
               GetVbusVoltage(node_id),
               ClearErrors(node_id),
-              SetLinearCount(node_id)
+              SetLinearCount(node_id) {};
 
-              {};
-
-    private:
-        uint32_t _node_id;
-
-    public:
-        uint32_t getNodeId() { return _node_id; };
-
-    public:
         Heartbeat_t Heartbeat;
         EStop_t EStop;
         GetMotorError_t GetMotorError;
@@ -322,16 +322,12 @@ private:
         ClearErrors_t ClearErrors;
         SetLinearCount_t SetLinearCount;
     };
+
+private:
     ODriveNode_t *_nodes[ODRIVE_MAX_NODES];
 
 public:
-    ODriveFlexCAN(uint32_t *node_ids);
     const ODriveNode_t &operator()(uint32_t node_id) const;
-    void filter(const CAN_message_t &msg);
 };
 
-
-#undef GET_CANBUS_ID
-#undef GET_NODE_ID
-#undef GET_MSG_ID
 #endif
