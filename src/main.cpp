@@ -1,4 +1,5 @@
 #include <Arduino.h>
+#include <cstring>
 #include <AsyncDelay.h>
 #include "TaskManagerIO.h"
 
@@ -9,12 +10,28 @@ AsyncDelay fast_loop;
 FlexCAN_T4<CAN1, RX_SIZE_256, TX_SIZE_16> Can0;
 
 #include "ODriveFlexCAN.h"
-uint32_t node_ids[] = {4, 1};
-ODriveFlexCAN odrive(node_ids, 2);
+class UserImplementedClass : public ODriveFlexCAN<CAN_message_t>
+{
+public:
+    CONSTRUCTORS(UserImplementedClass)
+
+    CAN_message_t user_pack(uint32_t id, uint8_t len, const uint8_t *buf, bool rtr)
+    {
+        CAN_message_t msg;
+        msg.id = id;
+        msg.len = len;
+        std::memcpy(msg.buf, buf, len);
+        msg.flags.remote = rtr;
+        return msg;
+    }
+};
+uint32_t node_ids[] = {0, 1};
+UserImplementedClass odrive(node_ids, 2);
 
 void canSniff(const CAN_message_t &msg)
 {
-    odrive.filter(msg);
+    //odrive.filter(msg);
+    odrive.filter(msg.id, msg.len, msg.buf);
 }
 
 void setup()
