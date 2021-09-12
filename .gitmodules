@@ -1,0 +1,3 @@
+[submodule "include/CAN-Helpers"]
+	path = include/CAN-Helpers
+	url = https://github.com/Wetmelon/CAN-Helpers.git
