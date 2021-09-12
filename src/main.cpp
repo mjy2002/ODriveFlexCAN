@@ -9,8 +9,8 @@ AsyncDelay fast_loop;
 #include <FlexCAN_T4.h>
 FlexCAN_T4<CAN1, RX_SIZE_256, TX_SIZE_16> Can0;
 
-#include "ODriveFlexCAN.h"
-class UserImplementedClass : public ODriveFlexCAN<CAN_message_t>
+#include "ODriveCanbusTranslator.h"
+class UserImplementedClass : public ODriveCanbusTranslator<CAN_message_t>
 {
 public:
     CONSTRUCTORS(UserImplementedClass)

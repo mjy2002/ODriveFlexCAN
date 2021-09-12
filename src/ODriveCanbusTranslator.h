@@ -1,9 +1,8 @@
-#ifndef ODriveFlexCAN_h
-#define ODriveFlexCAN_h
+#ifndef ODriveCanbusTranslator_h
+#define ODriveCanbusTranslator_h
 
 #include "Arduino.h"
 
-//#include "FlexCAN_T4.h" // CAN_message_t
 #include "ODriveEnums.h"
 #include "CAN-Helpers/can_helpers.hpp"
 
@@ -18,20 +17,20 @@
 #define GET_NODE_ID(canbus_id) (canbus_id >> 5)
 #define GET_MSG_ID(canbus_id) (canbus_id & 0x1F)
 
-#define CONSTRUCTORS(user_class)                                 \
-    user_class(uint32_t node_id = 0) : ODriveFlexCAN(node_id) {} \
-    user_class(const uint32_t *node_ids, uint32_t node_count) : ODriveFlexCAN(node_ids, node_count) {}
+#define CONSTRUCTORS(user_class)                                          \
+    user_class(uint32_t node_id = 0) : ODriveCanbusTranslator(node_id) {} \
+    user_class(const uint32_t *node_ids, uint32_t node_count) : ODriveCanbusTranslator(node_ids, node_count) {}
 
 template <typename T>
-class ODriveFlexCAN
+class ODriveCanbusTranslator
 {
 public:
-    ODriveFlexCAN(uint32_t node_id)
+    ODriveCanbusTranslator(uint32_t node_id)
         : _node_count(1)
     {
         _nodes[0] = new ODriveNode_t(node_id, *this);
     }
-    ODriveFlexCAN(const uint32_t *node_ids, uint32_t node_count)
+    ODriveCanbusTranslator(const uint32_t *node_ids, uint32_t node_count)
         : _node_count(node_count)
     {
         for (uint32_t i = 0; i < _node_count; i++)
@@ -147,7 +146,7 @@ private:
     class MessageBase_t
     {
     protected:
-        MessageBase_t(uint32_t node_id, uint32_t message_id, ODriveFlexCAN &owner)
+        MessageBase_t(uint32_t node_id, uint32_t message_id, ODriveCanbusTranslator &owner)
             : _node_id(node_id),
               _message_id(message_id),
               _owner(&owner) {};
@@ -169,7 +168,7 @@ private:
             return _owner->user_pack(GET_CANBUS_ID(_node_id, _message_id), 8, buf, is_rtr_message(_message_id));
         }
     private:
-        ODriveFlexCAN<T> *const _owner;
+        ODriveCanbusTranslator<T> *const _owner;
     };
     class Heartbeat_t : public MessageBase_t
     {
@@ -177,7 +176,7 @@ private:
         AxisError error;
         AxisState state;
 
-        Heartbeat_t(uint32_t node_id, ODriveFlexCAN &owner)
+        Heartbeat_t(uint32_t node_id, ODriveCanbusTranslator &owner)
             : MessageBase_t(node_id, MessageID_t::ODrive_Heartbeat, owner),
               error(AxisError::AXIS_ERROR_NONE),
               state(AxisState::AXIS_STATE_UNDEFINED){};
@@ -185,14 +184,14 @@ private:
     class EStop_t : public MessageBase_t
     {
     public:
-        EStop_t(uint32_t node_id, ODriveFlexCAN &owner)
+        EStop_t(uint32_t node_id, ODriveCanbusTranslator &owner)
             : MessageBase_t(node_id, MessageID_t::ODrive_EStop, owner){};
     };
     class GetMotorError_t : public MessageBase_t
     {
     public:
         MotorError error;
-        GetMotorError_t(uint32_t node_id, ODriveFlexCAN &owner)
+        GetMotorError_t(uint32_t node_id, ODriveCanbusTranslator &owner)
             : MessageBase_t(node_id, MessageID_t::GetMotorError, owner),
               error(MotorError::MOTOR_ERROR_NONE){};
     };
@@ -200,7 +199,7 @@ private:
     {
     public:
         EncoderError error;
-        GetEncoderError_t(uint32_t node_id, ODriveFlexCAN &owner)
+        GetEncoderError_t(uint32_t node_id, ODriveCanbusTranslator &owner)
             : MessageBase_t(node_id, MessageID_t::GetEncoderError, owner),
               error(EncoderError::ENCODER_ERROR_NONE){};
     };
@@ -208,7 +207,7 @@ private:
     {
     public:
         SensorlessEstimatorError error;
-        GetSensorlessError_t(uint32_t node_id, ODriveFlexCAN &owner)
+        GetSensorlessError_t(uint32_t node_id, ODriveCanbusTranslator &owner)
             : MessageBase_t(node_id, MessageID_t::GetSensorlessError, owner),
               error(SensorlessEstimatorError::SENSORLESS_ESTIMATOR_ERROR_NONE){};
     };
@@ -216,7 +215,7 @@ private:
     class SetAxisRequestedState_t : public MessageBase_t
     {
     public:
-        SetAxisRequestedState_t(uint32_t node_id, ODriveFlexCAN &owner)
+        SetAxisRequestedState_t(uint32_t node_id, ODriveCanbusTranslator &owner)
             : MessageBase_t(node_id, MessageID_t::SetAxisRequestedState, owner){};
 
         T operator()(AxisState requested_state) const
@@ -231,7 +230,7 @@ private:
     {
     public:
         float pos, vel;
-        GetEncoderEstimates_t(uint32_t node_id, ODriveFlexCAN &owner)
+        GetEncoderEstimates_t(uint32_t node_id, ODriveCanbusTranslator &owner)
             : MessageBase_t(node_id, MessageID_t::GetEncoderEstimates, owner),
               pos(0),
               vel(0){};
@@ -240,7 +239,7 @@ private:
     {
     public:
         int32_t shadow_count, count_cpr;
-        GetEncoderCount_t(uint32_t node_id, ODriveFlexCAN &owner)
+        GetEncoderCount_t(uint32_t node_id, ODriveCanbusTranslator &owner)
             : MessageBase_t(node_id, MessageID_t::GetEncoderCount, owner),
               shadow_count(0),
               count_cpr(0){};
@@ -248,7 +247,7 @@ private:
     class SetControllerModes_t : public MessageBase_t
     {
     public:
-        SetControllerModes_t(uint32_t node_id, ODriveFlexCAN &owner)
+        SetControllerModes_t(uint32_t node_id, ODriveCanbusTranslator &owner)
             : MessageBase_t(node_id, MessageID_t::SetControllerModes, owner){};
 
         T operator()(ControlMode control_mode, InputMode input_mode) const
@@ -262,7 +261,7 @@ private:
     class SetInputPos_t : public MessageBase_t
     {
     public:
-        SetInputPos_t(uint32_t node_id, ODriveFlexCAN &owner)
+        SetInputPos_t(uint32_t node_id, ODriveCanbusTranslator &owner)
             : MessageBase_t(node_id, MessageID_t::SetInputPos, owner){};
 
         T operator()(float input_pos, int16_t vel_ff = 0, int16_t torque_ff = 0) const
@@ -277,7 +276,7 @@ private:
     class SetInputVel_t : public MessageBase_t
     {
     public:
-        SetInputVel_t(uint32_t node_id, ODriveFlexCAN &owner)
+        SetInputVel_t(uint32_t node_id, ODriveCanbusTranslator &owner)
             : MessageBase_t(node_id, MessageID_t::SetInputVel, owner){};
 
         T operator()(float input_vel, float torque_ff = 0) const
@@ -291,7 +290,7 @@ private:
     class SetInputTorque_t : public MessageBase_t
     {
     public:
-        SetInputTorque_t(uint32_t node_id, ODriveFlexCAN &owner)
+        SetInputTorque_t(uint32_t node_id, ODriveCanbusTranslator &owner)
             : MessageBase_t(node_id, MessageID_t::SetInputTorque, owner){};
 
         T operator()(float input_torque) const
@@ -304,7 +303,7 @@ private:
     class SetLimits_t : public MessageBase_t
     {
     public:
-        SetLimits_t(uint32_t node_id, ODriveFlexCAN &owner)
+        SetLimits_t(uint32_t node_id, ODriveCanbusTranslator &owner)
             : MessageBase_t(node_id, MessageID_t::SetLimits, owner){};
 
         T operator()(float vel_lim, float cur_lim) const
@@ -318,13 +317,13 @@ private:
     class StartAnticogging_t : public MessageBase_t
     {
     public:
-        StartAnticogging_t(uint32_t node_id, ODriveFlexCAN &owner)
+        StartAnticogging_t(uint32_t node_id, ODriveCanbusTranslator &owner)
             : MessageBase_t(node_id, MessageID_t::StartAnticogging, owner){};
     };
     class SetTrajVelLimit_t : public MessageBase_t
     {
     public:
-        SetTrajVelLimit_t(uint32_t node_id, ODriveFlexCAN &owner)
+        SetTrajVelLimit_t(uint32_t node_id, ODriveCanbusTranslator &owner)
             : MessageBase_t(node_id, MessageID_t::SetTrajVelLimit, owner){};
 
         T operator()(float traj_vel_lim) const
@@ -337,7 +336,7 @@ private:
     class SetTrajAccelLimits_t : public MessageBase_t
     {
     public:
-        SetTrajAccelLimits_t(uint32_t node_id, ODriveFlexCAN &owner)
+        SetTrajAccelLimits_t(uint32_t node_id, ODriveCanbusTranslator &owner)
             : MessageBase_t(node_id, MessageID_t::SetTrajAccelLimits, owner){};
 
         T operator()(float traj_accel_lim, float traj_decel_lim) const
@@ -351,7 +350,7 @@ private:
     class SetTrajInertia_t : public MessageBase_t
     {
     public:
-        SetTrajInertia_t(uint32_t node_id, ODriveFlexCAN &owner)
+        SetTrajInertia_t(uint32_t node_id, ODriveCanbusTranslator &owner)
             : MessageBase_t(node_id, MessageID_t::SetTrajInertia, owner){};
 
         T operator()(float traj_inertia) const
@@ -365,7 +364,7 @@ private:
     {
     public:
         float iq_setpoint, iq_measured;
-        GetIQ_t(uint32_t node_id, ODriveFlexCAN &owner)
+        GetIQ_t(uint32_t node_id, ODriveCanbusTranslator &owner)
             : MessageBase_t(node_id, MessageID_t::GetIQ, owner),
               iq_setpoint(0),
               iq_measured(0){};
@@ -374,7 +373,7 @@ private:
     {
     public:
         float pos, vel;
-        GetSensorlessEstimates_t(uint32_t node_id, ODriveFlexCAN &owner)
+        GetSensorlessEstimates_t(uint32_t node_id, ODriveCanbusTranslator &owner)
             : MessageBase_t(node_id, MessageID_t::GetSensorlessEstimates, owner),
               pos(0),
               vel(0){};
@@ -382,27 +381,27 @@ private:
     class RebootOdrive_t : public MessageBase_t
     {
     public:
-        RebootOdrive_t(uint32_t node_id, ODriveFlexCAN &owner)
+        RebootOdrive_t(uint32_t node_id, ODriveCanbusTranslator &owner)
             : MessageBase_t(node_id, MessageID_t::RebootODrive, owner){};
     };
     class GetVbusVoltage_t : public MessageBase_t
     {
     public:
         float vbus;
-        GetVbusVoltage_t(uint32_t node_id, ODriveFlexCAN &owner)
+        GetVbusVoltage_t(uint32_t node_id, ODriveCanbusTranslator &owner)
             : MessageBase_t(node_id, MessageID_t::GetVbusVoltage, owner),
               vbus(0){};
     };
     class ClearErrors_t : public MessageBase_t
     {
     public:
-        ClearErrors_t(uint32_t node_id, ODriveFlexCAN &owner)
+        ClearErrors_t(uint32_t node_id, ODriveCanbusTranslator &owner)
             : MessageBase_t(node_id, MessageID_t::ClearErrors, owner){};
     };
     class SetLinearCount_t : public MessageBase_t
     {
     public:
-        SetLinearCount_t(uint32_t node_id, ODriveFlexCAN &owner)
+        SetLinearCount_t(uint32_t node_id, ODriveCanbusTranslator &owner)
             : MessageBase_t(node_id, MessageID_t::SetLinearCount, owner){};
 
         T operator()(int32_t pos) const
@@ -422,7 +421,7 @@ private:
         uint32_t getNodeId() { return _node_id; };
 
     public:
-        ODriveNode_t(uint32_t node_id, ODriveFlexCAN &owner)
+        ODriveNode_t(uint32_t node_id, ODriveCanbusTranslator &owner)
             : _node_id(node_id),
               Heartbeat(node_id, owner),
               EStop(node_id, owner),
