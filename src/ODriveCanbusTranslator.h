@@ -43,15 +43,15 @@ public:
         uint32_t node_id = GET_NODE_ID(id);
         uint32_t msg_id = GET_MSG_ID(id);
 
-        can_Message_t msg;
-        msg.id = id;
-        msg.len = len;
-        std::memcpy(msg.buf, buf, len);
-
         for (uint32_t i = 0; i < _node_count; i++)
         {
             if (_nodes[i]->getNodeId() == node_id)
             {
+                can_Message_t msg;
+                msg.id = id;
+                msg.len = len;
+                std::memcpy(msg.buf, buf, len);
+
                 if (msg_id == MessageID_t::ODrive_Heartbeat)
                 {
                     _nodes[i]->Heartbeat.error = (AxisError)can_getSignal<uint32_t>(msg, 0, 32, true);
