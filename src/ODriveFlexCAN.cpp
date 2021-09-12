@@ -11,6 +11,12 @@
 #define GET_NODE_ID(canbus_id) (canbus_id >> 5)
 #define GET_MSG_ID(canbus_id) (canbus_id & 0x1F)
 
+ODriveFlexCAN::ODriveFlexCAN(uint32_t node_id)
+    : _node_count(1)
+{
+    _nodes[0] = new ODriveNode_t(node_id);
+}
+
 ODriveFlexCAN::ODriveFlexCAN(const uint32_t *node_ids, uint32_t node_count)
     : _node_count(node_count)
 {
@@ -22,8 +28,6 @@ ODriveFlexCAN::ODriveFlexCAN(const uint32_t *node_ids, uint32_t node_count)
 
 const ODriveFlexCAN::ODriveNode_t &ODriveFlexCAN::operator()(uint32_t node_id) const
 {
-    Serial.print("flexcan() _node_count: ");
-    Serial.println(_node_count);
     for (uint32_t i = 0; i < _node_count; i++)
         if (_nodes[i]->getNodeId() == node_id)
             return *_nodes[i];
@@ -50,11 +54,6 @@ void ODriveFlexCAN::filter(const CAN_message_t &msg)
     {
         if (_nodes[i]->getNodeId() == node_id)
         {
-            if (false && (msg_id != MessageID_t::ODrive_Heartbeat))
-            {
-                Serial.print("decode ");
-                Serial.println(msg_id);
-            }
             if (msg_id == MessageID_t::ODrive_Heartbeat)
             {
                 _nodes[i]->Heartbeat.error = (AxisError)can_getSignal<uint32_t>(flexcan_to_odrive(msg), 0, 32, true);
