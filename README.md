@@ -1,6 +1,6 @@
 # ODriveFlexCAN
 
-An implementation of the ODrive Canbus protocol for the Arduino platform. Uses Wetmelon's https://github.com/Wetmelon/CAN-Helpers with a [small code change](https://github.com/Wetmelon/CAN-Helpers/pull/1) to get it to build under Arduino.
+An implementation of the ODrive Canbus protocol for the Arduino platform. Uses Wetmelon's https://github.com/Wetmelon/CAN-Helpers.
 
 Refer to [examples in FlexCAN_t4](https://github.com/tonton81/FlexCAN_T4/blob/master/examples/CAN2.0_example_FIFO_with_interrupts/CAN2.0_example_FIFO_with_interrupts.ino) to get Canbus like this up and running.
 
