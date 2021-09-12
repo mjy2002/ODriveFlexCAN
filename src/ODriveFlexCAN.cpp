@@ -1,6 +1,6 @@
 #include "ODriveFlexCAN.h"
 
-#include "can_helpers.hpp" // can_Message_t, can_getSignal, can_setSignal (not the same can_Message_t as FlexCAN!)
+#include "CAN-Helpers/can_helpers.hpp" // can_Message_t, can_getSignal, can_setSignal (not the same can_Message_t as FlexCAN!)
 
 // Upper 6 bits - Node ID (axis id)
 // Lower 5 bits - Command ID
