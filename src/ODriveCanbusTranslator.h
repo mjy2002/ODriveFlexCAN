@@ -1,7 +1,7 @@
 #ifndef ODriveCanbusTranslator_h
 #define ODriveCanbusTranslator_h
 
-#include "Arduino.h"
+#include <cstdint>
 
 #include "ODriveEnums.h"
 #include "CAN-Helpers/can_helpers.hpp"
@@ -98,7 +98,7 @@ public:
     }
 
 protected:
-    virtual T user_pack(uint32_t id, uint8_t len, const uint8_t *buf, bool rtr) = 0;
+    virtual T pack(uint32_t id, uint8_t len, const uint8_t *buf, bool rtr) = 0;
 
 private:
     enum MessageID_t
@@ -165,7 +165,7 @@ private:
         }
         T pack(const uint8_t *buf) const
         {
-            return _owner->user_pack(GET_CANBUS_ID(_node_id, _message_id), 8, buf, is_rtr_message(_message_id));
+            return _owner->pack(GET_CANBUS_ID(_node_id, _message_id), 8, buf, is_rtr_message(_message_id));
         }
     private:
         ODriveCanbusTranslator<T> *const _owner;
@@ -483,12 +483,19 @@ private:
 public:
     const ODriveNode_t &operator()(uint32_t node_id) const
     {
-        for (uint32_t i = 0; i < _node_count; i++)
+        uint32_t i = 0;
+     
+        do {
             if (_nodes[i]->getNodeId() == node_id)
-                return *_nodes[i];
-
-        return *_nodes[0]; // for compiler warning
+                break;
+        } while (++i < _node_count);
+        
+        return *_nodes[i];
     }
 };
+
+#undef GET_CANBUS_ID
+#undef GET_NODE_ID
+#undef GET_MSG_ID
 
 #endif

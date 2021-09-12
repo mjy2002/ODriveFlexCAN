@@ -15,7 +15,7 @@ class UserImplementedClass : public ODriveCanbusTranslator<CAN_message_t>
 public:
     CONSTRUCTORS(UserImplementedClass)
 
-    CAN_message_t user_pack(uint32_t id, uint8_t len, const uint8_t *buf, bool rtr)
+    CAN_message_t pack(uint32_t id, uint8_t len, const uint8_t *buf, bool rtr)
     {
         CAN_message_t msg;
         msg.id = id;
@@ -30,7 +30,6 @@ UserImplementedClass odrive(node_ids, 2);
 
 void canSniff(const CAN_message_t &msg)
 {
-    //odrive.filter(msg);
     odrive.filter(msg.id, msg.len, msg.buf);
 }
 
